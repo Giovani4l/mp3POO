@@ -1,0 +1,37 @@
+private void pictureBox1_Click(object sender, EventArgs e)
+{
+    // PLAY (igual que btnPlay_Click)
+    if (lvTracks.SelectedItems.Count == 0)
+    {
+        if (lvTracks.Items.Count > 0)
+        {
+            lvTracks.Items[0].Selected = true;
+        }
+        else
+        {
+            return;
+        }
+    }
+
+    currentTrackIndex = lvTracks.SelectedItems[0].Index;
+    var path = lvTracks.SelectedItems[0].SubItems[4].Text;
+    PlayFile(path);
+}
+
+private void pictureBox2_Click(object sender, EventArgs e)
+{
+    // PAUSE/RESUME (igual que btnPause_Click)
+    if (outputDevice == null)
+    {
+        return;
+    }
+
+    if (outputDevice.PlaybackState == PlaybackState.Playing)
+    {
+        outputDevice.Pause();
+    }
+    else if (outputDevice.PlaybackState == PlaybackState.Paused)
+    {
+        outputDevice.Play();
+    }
+}
