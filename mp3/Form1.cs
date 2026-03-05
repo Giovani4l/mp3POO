@@ -21,8 +21,7 @@ namespace mp3
         // Nuevo: clave de API de YouTube Data v3 (lee de variable de entorno o sustituye por tu clave)
         private readonly string youtubeApiKey;
 
-        // TextBox para mostrar datos (información obtenida de YouTube u otros)
-        private System.Windows.Forms.TextBox tbDetails;
+        // tbDetails eliminado
 
         // Nuevo: indica si el usuario está arrastrando el trackbar (no sobreescribir mientras tanto)
         private bool isUserSeeking = false;
@@ -38,6 +37,10 @@ namespace mp3
         private readonly Random random = new();
         private bool isRepeatTrackEnabled;
         private bool isShuffleEnabled;
+        private int[] eqBandValues = new int[5];
+        private GraphicEqualizerSampleProvider? equalizerProvider;
+        private Image? playImage;
+        private Image? pauseImage;
 
         public Form1()
         {
@@ -45,20 +48,16 @@ namespace mp3
             lvTracks.SmallImageList = imageListCovers;
             lvTracks.View = View.Details;
 
+            var resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            playImage = (Image?)resources.GetObject("pictureBox1.Image");
+            pauseImage = CreatePauseImage(32, 32);
+            pictureBox1.Image = playImage;
+
             // Cargar clave desde variable de entorno para no hardcodear en el binario.
             youtubeApiKey = "AIzaSyDPkcd73ZrTFCukHY5ic1iMu5pIgpsEPT8";
 
-            // Crear el TextBox de detalles en tiempo de ejecución para mostrar datos de la canción
-            tbDetails = new System.Windows.Forms.TextBox
-            {
-                Multiline = true,
-                ReadOnly = true,
-                ScrollBars = ScrollBars.Vertical,
-                Location = new Point(76, 320),
-                Size = new Size(295, 120),
-                BorderStyle = BorderStyle.FixedSingle
-            };
-            Controls.Add(tbDetails);
+            pictureBox8.Paint += PictureBoxMode_Paint;
+            pictureBox9.Paint += PictureBoxMode_Paint;
         }
 
         private async Task<Image?> FetchCoverAsync(string artist, string title, string album)
@@ -331,12 +330,15 @@ namespace mp3
                         audioFile.Dispose();
                         audioFile = null;
                     }
+            equalizerProvider = null;
                 }
                 catch { }
 
                 audioFile = new AudioFileReader(path);
+                equalizerProvider = new GraphicEqualizerSampleProvider(audioFile);
+                equalizerProvider.SetGains(eqBandValues.Select(v => (float)v).ToArray());
                 outputDevice = new WaveOutEvent();
-                outputDevice.Init(audioFile);
+                outputDevice.Init(equalizerProvider);
                 outputDevice.PlaybackStopped += OutputDevice_PlaybackStopped;
 
                 // Aplicar volumen actual
@@ -360,6 +362,7 @@ namespace mp3
 
                 // Iniciar reproducción
                 outputDevice.Play();
+                pictureBox1.Image = pauseImage;
                 playbackTimer.Start();
             }
             catch (Exception ex)
@@ -398,16 +401,6 @@ namespace mp3
                 pbCover.Image = null;
             }
 
-            // Actualizar datos de la canción
-            var title = item.SubItems[0].Text;
-            var album = item.SubItems[1].Text;
-            var artist = item.SubItems[2].Text;
-            var duration = item.SubItems[3].Text;
-
-            tbDetails.Text = $"🎵 Título: {title}{Environment.NewLine}" +
-                             $"🎤 Artista: {artist}{Environment.NewLine}" +
-                             $"💿 Álbum: {album}{Environment.NewLine}" +
-                             $"⏱️ Duración: {duration}";
         }
 
         private void OutputDevice_PlaybackStopped(object? sender, StoppedEventArgs e)
@@ -422,6 +415,7 @@ namespace mp3
                 {
                     audioFile.Position = 0;
                     lblNow.Text = "00:00";
+                    pictureBox1.Image = playImage;
                     try
                     {
                         trackBar1.Value = 0;
@@ -473,6 +467,7 @@ namespace mp3
             // Reiniciar UI
             lblNow.Text = "00:00";
             lblDuration.Text = "00:00";
+            pictureBox1.Image = playImage;
 
             try
             {
@@ -592,6 +587,17 @@ namespace mp3
             }
         }
 
+        private void UpdateEqualizerGain(int bandIndex, int value)
+        {
+            if (bandIndex < 0 || bandIndex >= eqBandValues.Length)
+            {
+                return;
+            }
+
+            eqBandValues[bandIndex] = value;
+            equalizerProvider?.SetGain(bandIndex, value);
+        }
+
         private void btnAddToPlaylist_Click(object sender, EventArgs e)
         {
             if (lvTracks.SelectedItems.Count == 0)
@@ -672,7 +678,6 @@ namespace mp3
                     highResCoverImages.Clear();
                     currentTrackIndex = -1;
                     pbCover.Image = null;
-                    tbDetails.Text = "";
 
                     // Cargar archivos de la lista
                     foreach (var l in lines)
@@ -716,6 +721,14 @@ namespace mp3
             }
         }
 
+        private void btnOpenEqualizer_Click(object sender, EventArgs e)
+        {
+            using var eq = new EqualizerForm();
+            eq.GainChanged = UpdateEqualizerGain;
+            eq.SetValues(eqBandValues);
+            eq.ShowDialog(this);
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             StopPlayback();
@@ -730,13 +743,27 @@ namespace mp3
 
         private void pictureBox1_Click(object sender, EventArgs e)
         {
+            if (outputDevice != null && outputDevice.PlaybackState == PlaybackState.Playing)
+            {
+                outputDevice.Pause();
+                pictureBox1.Image = playImage;
+                return;
+            }
+
+            if (outputDevice != null && outputDevice.PlaybackState == PlaybackState.Paused)
+            {
+                outputDevice.Play();
+                pictureBox1.Image = pauseImage;
+                return;
+            }
+
+            // No hay reproducción activa: iniciar la pista seleccionada o la primera
             if (lvTracks.SelectedItems.Count == 0)
             {
                 if (lvTracks.Items.Count > 0)
-                {
                     lvTracks.Items[0].Selected = true;
-                }
-                else return;
+                else
+                    return;
             }
 
             currentTrackIndex = lvTracks.SelectedItems[0].Index;
@@ -749,18 +776,57 @@ namespace mp3
 
         }
 
-        private void pictureBox2_Click(object sender, EventArgs e)
+        /// Draws two vertical bars (pause icon) on a transparent bitmap.
+        private static Bitmap CreatePauseImage(int width, int height)
         {
-            if (outputDevice == null) return;
-            if (outputDevice.PlaybackState == PlaybackState.Playing)
-            {
-                outputDevice.Pause();
-            }
-            else if (outputDevice.PlaybackState == PlaybackState.Paused)
-            {
-                outputDevice.Play();
-            }
+            var bmp = new Bitmap(width, height);
+            using var g = Graphics.FromImage(bmp);
+            g.Clear(Color.Transparent);
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+            using var brush = new SolidBrush(Color.FromArgb(30, 30, 30));
+            int barW = width / 5;
+            int barH = (int)(height * 0.6);
+            int top = (height - barH) / 2;
+            int left1 = (int)(width * 0.22);
+            int left2 = (int)(width * 0.55);
+
+            g.FillRectangle(brush, left1, top, barW, barH);
+            g.FillRectangle(brush, left2, top, barW, barH);
+
+            return bmp;
         }
+
+        private void PictureBoxMode_Paint(object? sender, PaintEventArgs e)
+        {
+            if (sender is not PictureBox pb)
+            {
+                return;
+            }
+
+            bool active = (pb == pictureBox8 && isRepeatTrackEnabled)
+                       || (pb == pictureBox9 && isShuffleEnabled);
+
+            if (!active)
+            {
+                return;
+            }
+
+            using var pen = new Pen(Color.DodgerBlue, 2);
+            var rect = new Rectangle(1, 1, pb.Width - 3, pb.Height - 3);
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+            int radius = 5;
+            using var path = new System.Drawing.Drawing2D.GraphicsPath();
+            path.AddArc(rect.X, rect.Y, radius * 2, radius * 2, 180, 90);
+            path.AddArc(rect.Right - radius * 2, rect.Y, radius * 2, radius * 2, 270, 90);
+            path.AddArc(rect.Right - radius * 2, rect.Bottom - radius * 2, radius * 2, radius * 2, 0, 90);
+            path.AddArc(rect.X, rect.Bottom - radius * 2, radius * 2, radius * 2, 90, 90);
+            path.CloseFigure();
+            e.Graphics.DrawPath(pen, path);
+        }
+
+        // pictureBox2 eliminated; play/pause merged into pictureBox1_Click
 
         
 
@@ -850,7 +916,6 @@ namespace mp3
             if (lvTracks.SelectedItems.Count == 0)
             {
                 pbCover.Image = null;
-                tbDetails.Text = "";
                 return;
             }
 
@@ -876,34 +941,6 @@ namespace mp3
             catch
             {
                 pbCover.Image = null;
-            }
-
-            // Mostrar datos de la canción inmediatamente
-            var title = item.SubItems[0].Text;
-            var album = item.SubItems[1].Text;
-            var artist = item.SubItems[2].Text;
-            var duration = item.SubItems[3].Text;
-
-            tbDetails.Text = $"🎵 Título: {title}{Environment.NewLine}" +
-                             $"🎤 Artista: {artist}{Environment.NewLine}" +
-                             $"💿 Álbum: {album}{Environment.NewLine}" +
-                             $"⏱️ Duración: {duration}";
-
-            // Cargar info de YouTube en segundo plano (opcional)
-            try
-            {
-                var currentIndex = currentTrackIndex; // Capturar el índice actual
-                var info = await FetchYouTubeInfoAsync(artist, title);
-
-                // Verificar que seguimos en la misma canción
-                if (currentIndex == currentTrackIndex && !string.IsNullOrEmpty(info))
-                {
-                    tbDetails.Text += $"{Environment.NewLine}{Environment.NewLine}📺 {info}";
-                }
-            }
-            catch
-            {
-                // Ignorar errores de YouTube
             }
         }
 
@@ -969,7 +1006,6 @@ namespace mp3
                 // Resetear índice y UI
                 currentTrackIndex = -1;
                 pbCover.Image = null;
-                tbDetails.Text = "";
                 lblPlaylistCount.Text = "En lista: 0";
             }
         }
@@ -1163,6 +1199,8 @@ namespace mp3
                 isRepeatTrackEnabled = false;
             }
 
+            pictureBox8.Invalidate();
+            pictureBox9.Invalidate();
         }
 
         private void pictureBox8_Click(object sender, EventArgs e)
@@ -1173,6 +1211,8 @@ namespace mp3
                 isShuffleEnabled = false;
             }
 
+            pictureBox8.Invalidate();
+            pictureBox9.Invalidate();
         }
     }
 }

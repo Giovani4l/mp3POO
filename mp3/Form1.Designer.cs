@@ -24,7 +24,6 @@
         #region Windows Form Designer generated code
 
         private PictureBox pictureBox1;
-        private PictureBox pictureBox2;
         private TrackBar trackBar1;
         private TrackBar trackBarVolume;
         private Label lblVolume;
@@ -33,6 +32,7 @@
         private Button btnAddToPlaylist;
         private Label lblPlaylistCount;
         private Button btnClearList;
+        private Button btnOpenEqualizer;
 
         /// <summary>
         ///  Required method for Designer support - do not modify
@@ -57,7 +57,6 @@
             lblDuration = new Label();
             playbackTimer = new System.Windows.Forms.Timer(components);
             pictureBox1 = new PictureBox();
-            pictureBox2 = new PictureBox();
             trackBar1 = new TrackBar();
             trackBarVolume = new TrackBar();
             pictureBox3 = new PictureBox();
@@ -68,6 +67,7 @@
             btnAddToPlaylist = new Button();
             lblPlaylistCount = new Label();
             btnClearList = new Button();
+            btnOpenEqualizer = new Button();
             pictureBox5 = new PictureBox();
             pictureBox6 = new PictureBox();
             pictureBox7 = new PictureBox();
@@ -75,7 +75,6 @@
             pictureBox9 = new PictureBox();
             ((System.ComponentModel.ISupportInitialize)pbCover).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trackBar1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trackBarVolume).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBox3).BeginInit();
@@ -207,17 +206,6 @@
             pictureBox1.TabStop = false;
             pictureBox1.Click += pictureBox1_Click;
             // 
-            // pictureBox2
-            // 
-            pictureBox2.Image = (Image)resources.GetObject("pictureBox2.Image");
-            pictureBox2.Location = new Point(209, 270);
-            pictureBox2.Name = "pictureBox2";
-            pictureBox2.Size = new Size(32, 32);
-            pictureBox2.SizeMode = PictureBoxSizeMode.AutoSize;
-            pictureBox2.TabIndex = 14;
-            pictureBox2.TabStop = false;
-            pictureBox2.Click += pictureBox2_Click;
-            // 
             // trackBar1
             // 
             trackBar1.Enabled = false;
@@ -257,7 +245,7 @@
             // pictureBox4
             // 
             pictureBox4.Image = (Image)resources.GetObject("pictureBox4.Image");
-            pictureBox4.Location = new Point(285, 270);
+            pictureBox4.Location = new Point(247, 270);
             pictureBox4.Name = "pictureBox4";
             pictureBox4.Size = new Size(35, 32);
             pictureBox4.SizeMode = PictureBoxSizeMode.Zoom;
@@ -323,10 +311,20 @@
             btnClearList.UseVisualStyleBackColor = true;
             btnClearList.Click += btnClearList_Click;
             // 
+            // btnOpenEqualizer
+            // 
+            btnOpenEqualizer.Location = new Point(519, 410);
+            btnOpenEqualizer.Name = "btnOpenEqualizer";
+            btnOpenEqualizer.Size = new Size(103, 28);
+            btnOpenEqualizer.TabIndex = 35;
+            btnOpenEqualizer.Text = "Ecualizador";
+            btnOpenEqualizer.UseVisualStyleBackColor = true;
+            btnOpenEqualizer.Click += btnOpenEqualizer_Click;
+            // 
             // pictureBox5
             // 
             pictureBox5.Image = (Image)resources.GetObject("pictureBox5.Image");
-            pictureBox5.Location = new Point(330, 270);
+            pictureBox5.Location = new Point(289, 270);
             pictureBox5.Name = "pictureBox5";
             pictureBox5.Size = new Size(51, 32);
             pictureBox5.SizeMode = PictureBoxSizeMode.Zoom;
@@ -348,7 +346,7 @@
             // pictureBox7
             // 
             pictureBox7.Image = (Image)resources.GetObject("pictureBox7.Image");
-            pictureBox7.Location = new Point(247, 270);
+            pictureBox7.Location = new Point(209, 270);
             pictureBox7.Name = "pictureBox7";
             pictureBox7.Size = new Size(32, 32);
             pictureBox7.SizeMode = PictureBoxSizeMode.Zoom;
@@ -370,7 +368,7 @@
             // pictureBox9
             // 
             pictureBox9.Image = (Image)resources.GetObject("pictureBox9.Image");
-            pictureBox9.Location = new Point(373, 270);
+            pictureBox9.Location = new Point(346, 270);
             pictureBox9.Name = "pictureBox9";
             pictureBox9.Size = new Size(56, 32);
             pictureBox9.SizeMode = PictureBoxSizeMode.Zoom;
@@ -392,12 +390,12 @@
             Controls.Add(btnLoadPlaylist);
             Controls.Add(btnSavePlaylist);
             Controls.Add(btnAddToPlaylist);
+            Controls.Add(btnOpenEqualizer);
             Controls.Add(lblVolume);
             Controls.Add(pictureBox4);
             Controls.Add(pictureBox3);
             Controls.Add(trackBarVolume);
             Controls.Add(trackBar1);
-            Controls.Add(pictureBox2);
             Controls.Add(pictureBox1);
             Controls.Add(lblDuration);
             Controls.Add(lblNow);
@@ -411,7 +409,6 @@
             Text = "Reproductor MP3";
             ((System.ComponentModel.ISupportInitialize)pbCover).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
             ((System.ComponentModel.ISupportInitialize)trackBar1).EndInit();
             ((System.ComponentModel.ISupportInitialize)trackBarVolume).EndInit();
             ((System.ComponentModel.ISupportInitialize)pictureBox3).EndInit();
